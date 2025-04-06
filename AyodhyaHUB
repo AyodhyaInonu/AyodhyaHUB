@@ -1,0 +1,217 @@
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MainGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 200)
+frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Dragging (Mobile + PC Support)
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y
+	)
+end
+
+local function inputBegan(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end
+
+local function inputChanged(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end
+
+frame.InputBegan:Connect(inputBegan)
+frame.InputChanged:Connect(inputChanged)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Rainbow Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Ayodhya Hub"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(255, 0, 0)
+title.Parent = frame
+
+spawn(function()
+	while true do
+		title.TextColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+		RunService.RenderStepped:Wait()
+	end
+end)
+
+-- ESP Button (Left)
+local espBtn = Instance.new("TextButton")
+espBtn.Size = UDim2.new(0, 110, 0, 30)
+espBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
+espBtn.Text = "Toggle ESP"
+espBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+espBtn.Font = Enum.Font.SourceSansBold
+espBtn.TextSize = 14
+espBtn.Parent = frame
+Instance.new("UICorner", espBtn)
+espBtn.MouseButton1Click:Connect(toggleESP)
+
+-- Player Textbox (Middle)
+local playerDropdown = Instance.new("TextBox")
+playerDropdown.Size = UDim2.new(0, 130, 0, 30)
+playerDropdown.Position = UDim2.new(0.35, 0, 0.8, 0)
+playerDropdown.PlaceholderText = "Player Name"
+playerDropdown.Text = ""
+playerDropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+playerDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+playerDropdown.Font = Enum.Font.SourceSans
+playerDropdown.TextSize = 14
+playerDropdown.Parent = frame
+Instance.new("UICorner", playerDropdown)
+
+-- Teleport Button (Right)
+local tpBtn = Instance.new("TextButton")
+tpBtn.Size = UDim2.new(0, 110, 0, 30)
+tpBtn.Position = UDim2.new(0.7, 0, 0.8, 0)
+tpBtn.Text = "Teleport"
+tpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+tpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpBtn.Font = Enum.Font.SourceSansBold
+tpBtn.TextSize = 14
+tpBtn.Parent = frame
+Instance.new("UICorner", tpBtn)
+
+tpBtn.MouseButton1Click:Connect(function()
+	local targetName = playerDropdown.Text
+	local targetPlayer = Players:FindFirstChild(targetName)
+	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(2, 0, 0)
+		end
+	end
+end)
+-- Minimized GUI (hidden by default)
+local minimizedGui = Instance.new("TextButton")
+minimizedGui.Size = UDim2.new(0, 100, 0, 30)
+minimizedGui.Position = UDim2.new(0, 10, 0, 10)
+minimizedGui.Text = "Open Hub"
+minimizedGui.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+minimizedGui.TextColor3 = Color3.new(1, 1, 1)
+minimizedGui.Font = Enum.Font.SourceSansBold
+minimizedGui.TextSize = 14
+minimizedGui.Visible = false
+minimizedGui.Parent = screenGui
+Instance.new("UICorner", minimizedGui)
+
+-- Dragging for minimized button
+minimizedGui.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = minimizedGui.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+minimizedGui.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		minimizedGui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Close Button on Main GUI
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -390, 0, 5)
+closeBtn.Text = "X"
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.SourceSansBold
+closeBtn.TextSize = 16
+closeBtn.Parent = frame
+Instance.new("UICorner", closeBtn)
+
+closeBtn.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	minimizedGui.Visible = true
+end)
+
+minimizedGui.MouseButton1Click:Connect(function()
+	frame.Visible = true
+	minimizedGui.Visible = false
+end)
+
+-- Noclip Toggle
+local noclip = false
+
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Size = UDim2.new(0, 100, 0, 30)
+noclipBtn.Position = UDim2.new(0.06, 0, 0.6, 0) -- Adjust as needed
+noclipBtn.Text = "Toggle Noclip"
+noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+noclipBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+noclipBtn.Font = Enum.Font.SourceSansBold
+noclipBtn.TextSize = 14
+noclipBtn.Parent = frame
+Instance.new("UICorner", noclipBtn)
+
+noclipBtn.MouseButton1Click:Connect(function()
+	noclip = not noclip
+end)
+
+RunService.Stepped:Connect(function()
+	if noclip and LocalPlayer.Character then
+		for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
